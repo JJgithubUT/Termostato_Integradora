@@ -1,73 +1,55 @@
 import 'package:flutter/material.dart';
-import 'package:termostato_1/screens/register_user_screen.dart';
 import 'package:termostato_1/screens/thermostatus_screen.dart';
+import 'package:termostato_1/widgets/themes.dart';
 import 'package:termostato_1/services/user_service.dart';
-//import 'package:termostato_1/screens/thermostatus_screen.dart';
-import '../widgets/themes.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class RegisterUserScreen extends StatefulWidget {
+  const RegisterUserScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegisterUserScreen> createState() => _RegisterUserScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegisterUserScreenState extends State<RegisterUserScreen> {
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _contraseniaController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
   String? _errorMessage;
-  
-  @override // Aquí se comienza a autologuear al usuario si ya ha iniciado sesión previamente
-  void initState() {
-    super.initState();
-    
-    UserService().getLocalUser().then((user) {
-      if (user != null) {
-        print('Usuario local encontrado: ${user.nombre}');
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => ThermostatusScreen()),
-        );
-      }
-    });
 
-  }
-
-  Future<void> _login() async {
+  Future<void> _register() async {
     setState(() {
       _errorMessage = null; // Limpiar mensaje previo
     });
 
     try {
-      final user = await UserService().logUser(
+      // Lógica de registro
+      final user = await UserService().registerUser(
         _emailController.text.trim(),
-        _passwordController.text.trim(),
+        _contraseniaController.text.trim(),
+        _nameController.text.trim(),
       );
 
       if (user != null) {
-        // Si el login es exitoso, navega a otra pantalla
-        print('Usuario autenticado: ${user.nombre}');
+        // Si el registro es exitoso, navega a otra pantalla
+        print('Usuario registrado: ${user.nombre}');
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => ThermostatusScreen()),
         );
       } else {
         // Si es null, se muestra
-        _showSnackBar('Credenciales incorrectas.');
+        _showSnackBar('Error al registrar usuario.');
       }
     } catch (e) {
       _showSnackBar(e.toString().replaceAll('StateError: ', ''));
     }
+
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 4),
-      ),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+    ));
   }
 
   @override
@@ -81,9 +63,10 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text("Iniciar Sesión", style: loginTitleStyle),
+                Text("Registrate", style: loginTitleStyle),
                 const SizedBox(height: 20),
                 TextField(
+                  keyboardType: TextInputType.emailAddress,
                   controller: _emailController,
                   decoration: InputDecoration(
                     labelText: "Email",
@@ -92,12 +75,22 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 10),
                 TextField(
-                  controller: _passwordController,
+                  keyboardType: TextInputType.visiblePassword,
+                  controller: _contraseniaController,
                   decoration: InputDecoration(
                     labelText: "Contraseña",
                     labelStyle: inputLabelStyle,
                   ),
                   obscureText: true,
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  keyboardType: TextInputType.text,
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: "Nombre",
+                    labelStyle: inputLabelStyle,
+                  ),
                 ),
                 const SizedBox(height: 10),
                 if (_errorMessage != null)
@@ -107,18 +100,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 const SizedBox(height: 10),
                 ElevatedButton(
-                  onPressed: _login,
-                  child: const Text("Ingresar"),
+                  onPressed: _register,
+                  child: const Text("Registrar"),
                 ),
                 const SizedBox(height: 10),
-                TextButton(
+                ElevatedButton(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => RegisterUserScreen()),
-                    );
+                    Navigator.pop(context);
                   }, // Navegación a registro
-                  child: const Text("Registrate"),
+                  child: const Text("Cancelar"),
                 ),
               ],
             ),
@@ -127,4 +117,6 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+
+
 }

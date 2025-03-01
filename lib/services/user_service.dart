@@ -1,8 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:termostato_1/models/user_model.dart';
 import 'package:mongo_dart/mongo_dart.dart' as mongo;
-import 'package:termostato_1/screens/login_screen.dart';
-import 'package:termostato_1/screens/thermostatus_screen.dart';
 import 'package:termostato_1/services/mongo_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -63,25 +60,26 @@ class UserService {
     return UserModel.fromJson(user);
   }
 
-  Future<void> preLogUser(BuildContext context) async {
-    UserModel? localDbUser = await getLocalUser();
-    if (localDbUser != null) {
-      print('Usuario local encontrado: ${localDbUser.nombre}, ${localDbUser.email}, ${localDbUser.contrasenia}');
-      UserModel user = logUser(localDbUser.email, localDbUser.contrasenia) as UserModel;
-      print('Usuario autenticado: ${user.nombre}');
-      // Cambiar a la screen del usuario si fue encontrado en la base de datos local y autenticado en la base de datos remota
-      if (user != null) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => ThermostatusScreen()),
-        );
-      }
-    } else {
-      // Usuario no encontrado en la base de datos local
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => LoginScreen()),
-      );
+  Future<UserModel?> registerUser(String nombre, String email, String contrasenia) async {
+    final collection = _mongoService.db.collection('usuarios');
+    final user = await collection.findOne(mongo.where.eq('email', email));
+
+    if (user != null) {
+      print('Usuario ya registrado');
+      return null;
     }
+
+    final newUser = UserModel(
+      id: mongo.ObjectId(),
+      nombre: nombre,
+      email: email,
+      contrasenia: contrasenia,
+      estado: true,
+    );
+
+    await collection.insert(newUser.toMap());
+    await saveLocalUser(newUser);
+    return newUser;
   }
+
 }
