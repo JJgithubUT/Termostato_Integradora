@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:termostato_1/screens/thermostatus_screen.dart';
+import 'package:termostato_1/services/user_service.dart';
 //import 'package:termostato_1/screens/thermostatus_screen.dart';
-import '../services/mongo_service.dart'; // Asegúrate de importar el servicio
 import '../widgets/themes.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -22,7 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final user = await MongoService().logUser(
+      final user = await UserService().logUser(
         _emailController.text.trim(),
         _passwordController.text.trim(),
       );
@@ -80,7 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     labelText: "Contraseña",
                     labelStyle: inputLabelStyle,
                   ),
-                  obscureText: false,
+                  obscureText: true,
                 ),
                 const SizedBox(height: 10),
                 if (_errorMessage != null)

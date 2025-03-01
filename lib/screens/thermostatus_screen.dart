@@ -18,7 +18,9 @@ class _ThermostatusScreenState extends State<ThermostatusScreen> {
       appBar: AppBar(
         backgroundColor: Colors.blue[900],
         leading: IconButton(
-          onPressed: () {},
+          onPressed: () {
+            Navigator.pop(context);
+          },
           icon: const Icon(Icons.arrow_back, color: Colors.white),
         ),
         title: const Text(
