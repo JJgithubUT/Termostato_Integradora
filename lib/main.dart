@@ -1,8 +1,6 @@
-// main.dart
 import 'package:flutter/material.dart';
 import 'package:termostato_1/screens/login_screen.dart';
 import 'package:termostato_1/services/mongo_service.dart';
-//import 'package:termostato_1/thermostatus.dart';
 import 'package:termostato_1/widgets/themes.dart';
 
 void main() async {

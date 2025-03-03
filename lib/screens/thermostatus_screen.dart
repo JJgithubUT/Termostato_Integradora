@@ -1,6 +1,8 @@
-// thermostatus.dart
 import 'package:flutter/material.dart';
+import 'package:termostato_1/screens/account_screen.dart';
+import 'package:termostato_1/screens/login_screen.dart';
 import '../widgets/themes.dart';
+import 'package:termostato_1/services/user_service.dart';
 
 class ThermostatusScreen extends StatefulWidget {
   const ThermostatusScreen({super.key});
@@ -15,24 +17,86 @@ class _ThermostatusScreenState extends State<ThermostatusScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: Drawer(
+        child: Container(
+          color: const Color.fromARGB(255, 75, 59, 113),
+          child: ListView(
+            children: [
+              DrawerHeader(
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 75, 59, 113),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    /* CircleAvatar( // Aquí tendría que ir el logo de la app
+                      radius: 50,
+                      backgroundImage: AssetImage('https://static.vecteezy.com/system/resources/previews/018/754/507/original/thermometer-icon-in-gradient-colors-temperature-signs-illustration-png.png'),
+                    ), */
+                    Text(
+                      'Termostato',
+                      style: TextStyle(color: Colors.white, fontSize: 24),
+                    ),
+                  ],
+                ),
+              ),
+              /* ListTile(
+                title: const Text(
+                  'Termostato',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                },
+              ), */
+              ListTile(
+                title: const Text(
+                  'Cuenta',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => AccountScreen()),
+                  );
+                },
+              ),
+              ListTile(
+                title: const Text(
+                  'Cerrar Sesión',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  UserService().cleanLocalUser();
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => LoginScreen()),
+                    (Route<dynamic> route) => false,
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
       appBar: AppBar(
-        backgroundColor: Colors.blue[900],
-        leading: IconButton(
+        backgroundColor: const Color.fromARGB(255, 9, 50, 110),
+        /* leading: IconButton(
           onPressed: () {
             Navigator.pop(context);
           },
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-        ),
+        ), */
         title: const Text(
           'Termostato',
           style: TextStyle(color: Colors.white),
         ),
-        actions: [
+        /* actions: [
           IconButton(
             onPressed: () {},
             icon: const Icon(Icons.menu, color: Colors.white),
           ),
-        ],
+        ], */
       ),
       body: Container(
         decoration: backgroundDecoration,
@@ -73,7 +137,8 @@ class _ThermostatusScreenState extends State<ThermostatusScreen> {
               FloatingActionButton(
                 onPressed: () {},
                 backgroundColor: Colors.green,
-                child: const Icon(Icons.power_settings_new, color: Colors.white),
+                child:
+                    const Icon(Icons.power_settings_new, color: Colors.white),
               ),
             ],
           ),

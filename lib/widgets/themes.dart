@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 final ThemeData appTheme = ThemeData(
   colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
   useMaterial3: true,
+  appBarTheme: const AppBarTheme(
+    iconTheme: IconThemeData(color: Colors.white),
+  ),
   inputDecorationTheme: InputDecorationTheme(
     filled: true,
     fillColor: const Color.fromARGB(255, 202, 202, 202),
@@ -12,11 +15,10 @@ final ThemeData appTheme = ThemeData(
     ),
     hintStyle: TextStyle(color: const Color.fromARGB(255, 78, 62, 62)),
     labelStyle: TextStyle(color: const Color.fromARGB(255, 210, 33, 33)),
-    
   ),
-  
   textButtonTheme: TextButtonThemeData(
-    style: TextButton.styleFrom(foregroundColor: const Color.fromARGB(255, 180, 207, 255)),
+    style: TextButton.styleFrom(
+        foregroundColor: const Color.fromARGB(255, 180, 207, 255)),
   ),
   elevatedButtonTheme: ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
@@ -30,7 +32,10 @@ final ThemeData appTheme = ThemeData(
 
 final BoxDecoration backgroundDecoration = BoxDecoration(
   gradient: LinearGradient(
-    colors: [const Color.fromARGB(255, 3, 84, 151), Color.fromARGB(255, 100, 149, 188)],
+    colors: [
+      const Color.fromARGB(255, 3, 84, 151),
+      Color.fromARGB(255, 100, 149, 188)
+    ],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   ),

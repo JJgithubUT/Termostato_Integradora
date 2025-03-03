@@ -36,36 +36,78 @@ class UserService {
     );
   }
 
+  Future<UserModel?> getRemoteUser() async {
+    final localUser = await getLocalUser();
+    if (localUser == null) {
+      print('No hay usuario local guardado.');
+      return null;
+    }
+
+    final collection = _mongoService.db.collection('usuarios');
+
+    try {
+      final user =
+          await collection.findOne(mongo.where.eq('_id', localUser.id));
+      if (user == null) {
+        print('Usuario remoto no encontrado.');
+        return null;
+      }
+      return UserModel.fromJson(user);
+    } catch (e) {
+      print('Error al obtener usuario remoto: $e');
+      return null;
+    }
+  }
+
   Future<UserModel?> logUser(String email, String contrasenia) async {
     final collection = _mongoService.db.collection('usuarios');
-    print('Colección obtenida: $collection');
-    final user = await collection.findOne(mongo.where.eq('email', email));
-    print('En MongoService: $user');
+    final users = await collection.find().toList();
+    print('Usuarios en la base de datos: $users');
 
-    if (user == null || user['estado'] == false) {
+    print('Buscando usuario con email: $email');
+
+    final user = await collection.findOne(mongo.where
+      .eq('email', email)
+      .eq('contrasenia', contrasenia)
+      .eq('estado', true));
+
+    print('Usuario encontrado? $user');
+
+    if (user == null) {
       print('Usuario no encontrado o inactivo');
-      return null; // No damos detalles para evitar ataques de enumeración de usuarios
+      return null;
     }
+
+    print('Usuario encontrado: ${user['email']}');
+    print('Contraseña guardada: ${user['contrasenia']}'); // Añadir este print
 
     if (user['contrasenia'] != contrasenia) {
       print('Contraseña incorrecta');
-      return null; // Se recomienda usar hashing en lugar de comparar en texto plano
+      return null;
     }
 
-    if (user['contrasenia'] == contrasenia) {
-      print('Contraseña correcta, guardando datos verificados a nivel local');
-      await saveLocalUser(UserModel.fromJson(user));
-      return UserModel.fromJson(user);
-    }
+    print('Contraseña correcta');
+
+    await saveLocalUser(UserModel.fromJson(user));
+
+    print('Usuario guardado localmente');
+
     return UserModel.fromJson(user);
   }
 
-  Future<UserModel?> registerUser(String nombre, String email, String contrasenia) async {
+  Future<UserModel?> registerUser(
+      String nombre, String email, String contrasenia) async {
     final collection = _mongoService.db.collection('usuarios');
-    final user = await collection.findOne(mongo.where.eq('email', email));
+    final existingUser =
+        await collection.findOne(mongo.where.eq('email', email));
 
-    if (user != null) {
-      print('Usuario ya registrado');
+    if (existingUser != null) {
+      print('Email ya en uso por un usuario activo');
+      return null;
+    }
+
+    if (nombre == ''|| email == '' || contrasenia == '') {
+      print('Campos vacios en registerUser()');
       return null;
     }
 
@@ -80,6 +122,73 @@ class UserService {
     await collection.insert(newUser.toMap());
     await saveLocalUser(newUser);
     return newUser;
+  }
+
+  Future<UserModel?> updateUser(
+    mongo.ObjectId id,
+    String nombre,
+    String email,
+    String contrasenia,
+  ) async {
+    final collection = _mongoService.db.collection('usuarios');
+    final user = await collection.findOne(mongo.where.eq('_id', id));
+
+    if (user == null) {
+      print('Usuario no encontrado');
+      return null;
+    }
+
+    if (nombre == '' || email == '' || contrasenia == '') {
+      print('Campos vacíos en updateUser()');
+      return null;
+    }
+
+    // Verificar si el nuevo email ya existe en otro usuario
+    if (user['email'] != email) {
+      final existingUser =
+          await collection.findOne(mongo.where.eq('email', email));
+      if (existingUser != null) {
+        print('Email ya en uso por otro usuario');
+        return null;
+      }
+    }
+
+    await collection.updateOne(
+      mongo.where.eq('_id', id),
+      mongo.modify
+          .set('nombre', nombre)
+          .set('email', email)
+          .set('contrasenia', contrasenia)
+          .set('estado', true),
+    );
+
+    await saveLocalUser(UserModel(
+      id: id,
+      nombre: nombre,
+      email: email,
+      contrasenia: contrasenia,
+      estado: true,
+    ));
+
+    print('Usuario actualizado con éxito: ${user}');
+
+    return UserModel(
+      id: id,
+      nombre: nombre,
+      email: email,
+      contrasenia: contrasenia,
+      estado: true,
+    );
+  }
+
+  Future<void> cleanLocalUser() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    try {
+      await prefs.clear();
+      print('Datos locales eliminados correctamente.');
+    } catch (e) {
+      print('Error al limpiar los datos locales: $e');
+    }
   }
 
 }

@@ -24,18 +24,25 @@ class _RegisterUserScreenState extends State<RegisterUserScreen> {
     try {
       // Lógica de registro
       final user = await UserService().registerUser(
+        _nameController.text.trim(),
         _emailController.text.trim(),
         _contraseniaController.text.trim(),
-        _nameController.text.trim(),
       );
 
       if (user != null) {
-        // Si el registro es exitoso, navega a otra pantalla
-        print('Usuario registrado: ${user.nombre}');
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => ThermostatusScreen()),
-        );
+        // verificar que los campos esten rellenados
+        if (_nameController.text != '' &&
+            _emailController.text != '' &&
+            _contraseniaController.text != '') {
+          // Si el registro es exitoso, navega a otra pantalla
+          print('Usuario registrado: ${user.nombre}');
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ThermostatusScreen()),
+          );
+        } else {
+          _showSnackBar('Campos vacíos');
+        }
       } else {
         // Si es null, se muestra
         _showSnackBar('Error al registrar usuario.');
@@ -43,7 +50,6 @@ class _RegisterUserScreenState extends State<RegisterUserScreen> {
     } catch (e) {
       _showSnackBar(e.toString().replaceAll('StateError: ', ''));
     }
-
   }
 
   void _showSnackBar(String message) {
@@ -106,6 +112,9 @@ class _RegisterUserScreenState extends State<RegisterUserScreen> {
                 const SizedBox(height: 10),
                 ElevatedButton(
                   onPressed: () {
+                    _nameController.text = '';
+                    _emailController.text = '';
+                    _contraseniaController.text = '';
                     Navigator.pop(context);
                   }, // Navegación a registro
                   child: const Text("Cancelar"),
@@ -117,6 +126,4 @@ class _RegisterUserScreenState extends State<RegisterUserScreen> {
       ),
     );
   }
-
-
 }

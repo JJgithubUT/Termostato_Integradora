@@ -16,21 +16,27 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   String? _errorMessage;
-  
-  @override // Aquí se comienza a autologuear al usuario si ya ha iniciado sesión previamente
+
+  @override
   void initState() {
     super.initState();
-    
-    UserService().getLocalUser().then((user) {
+    UserService().getRemoteUser().then((user) {
       if (user != null) {
-        print('Usuario local encontrado: ${user.nombre}');
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => ThermostatusScreen()),
-        );
+        print('Usuario remoto encontrado: ${user.nombre}');
+        _emailController.text = '';
+        _passwordController.text = '';
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => ThermostatusScreen()),
+          );
+        }
+      } else {
+        print('No hay usuario remoto activo.');
       }
+    }).catchError((error) {
+      print('Error al obtener usuario remoto: $error');
     });
-
   }
 
   Future<void> _login() async {
@@ -47,6 +53,8 @@ class _LoginScreenState extends State<LoginScreen> {
       if (user != null) {
         // Si el login es exitoso, navega a otra pantalla
         print('Usuario autenticado: ${user.nombre}');
+        _emailController.text = '';
+        _passwordController.text = '';
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => ThermostatusScreen()),
@@ -54,6 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         // Si es null, se muestra
         _showSnackBar('Credenciales incorrectas.');
+        // Función para mostrar el recuperar contraseña
       }
     } catch (e) {
       _showSnackBar(e.toString().replaceAll('StateError: ', ''));
@@ -115,7 +124,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => RegisterUserScreen()),
+                      MaterialPageRoute(
+                          builder: (context) => RegisterUserScreen()),
                     );
                   }, // Navegación a registro
                   child: const Text("Registrate"),
