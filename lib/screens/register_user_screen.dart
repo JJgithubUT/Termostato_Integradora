@@ -31,9 +31,9 @@ class _RegisterUserScreenState extends State<RegisterUserScreen> {
 
       if (user != null) {
         // verificar que los campos esten rellenados
-        if (_nameController.text != '' &&
-            _emailController.text != '' &&
-            _contraseniaController.text != '') {
+        if (_nameController.text == '' ||
+            _emailController.text == '' ||
+            _contraseniaController.text == '') {
           // Si el registro es exitoso, navega a otra pantalla
           print('Usuario registrado: ${user.nombre}');
           Navigator.push(
