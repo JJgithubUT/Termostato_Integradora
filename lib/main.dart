@@ -1,24 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:termostato_1/screens/login_screen.dart';
-import 'package:termostato_1/services/mongo_service.dart';
-import 'package:termostato_1/widgets/themes.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await MongoService().connect();
-  print('Conexión a MongoDB establecida.');
-  runApp(const MyApp());
+void main() {
+  runApp(const MainApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MainApp extends StatelessWidget {
+  const MainApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: appTheme,
-      home: const LoginScreen(),
+    return const MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: Text('Hello World!'),
+        ),
+      ),
     );
   }
 }
