@@ -22,7 +22,7 @@ final ThemeData appTheme = ThemeData(
   ),
   elevatedButtonTheme: ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
-      backgroundColor: Colors.deepPurple,
+      backgroundColor: const Color.fromARGB(255, 42, 16, 87),
       foregroundColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       padding: EdgeInsets.symmetric(vertical: 12, horizontal: 20),
@@ -71,4 +71,24 @@ const TextStyle inputLabelStyle = TextStyle(
   fontSize: 16,
   fontWeight: FontWeight.w500,
   color: Colors.white,
+);
+
+const TextStyle snackBarTextStyle = TextStyle(
+  color: Colors.white,
+  fontSize: 16.0,
+);
+
+final BoxDecoration snackBarDecoration = BoxDecoration(
+  color: Colors.redAccent,
+  borderRadius: BorderRadius.circular(8.0),
+);
+
+const TextStyle toastTextStyle = TextStyle(
+  color: Colors.white,
+  fontSize: 16.0,
+);
+
+final BoxDecoration toastDecoration = BoxDecoration(
+  color: Colors.redAccent,
+  borderRadius: BorderRadius.circular(8.0),
 );
