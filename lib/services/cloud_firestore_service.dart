@@ -5,7 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class CloudFirestoreService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  static final CloudFirestoreService _instance = CloudFirestoreService._internal();
+  static final CloudFirestoreService _instance =
+      CloudFirestoreService._internal();
 
   final FirebaseFirestore _cloudFireStore = FirebaseFirestore.instance;
 
@@ -31,7 +32,7 @@ class CloudFirestoreService {
   }
 
   ///// Registrate /////
-  
+
   Future<void> signup({
     required BuildContext context,
     required String email,
@@ -40,17 +41,14 @@ class CloudFirestoreService {
   }) async {
     try {
       // Crear usuario en Firebase Authentication
-      UserCredential userCredential =
-        await _auth.createUserWithEmailAndPassword(
-            email: email,
-            password: password,
-        );
+      UserCredential userCredential = await _auth
+          .createUserWithEmailAndPassword(email: email, password: password);
 
       User? user = userCredential.user;
-      
+
       if (user != null) {
         // Enviar correo de verificación
-        await user.sendEmailVerification();
+        await user.sendEmailVerification(); ///????????????????????????
 
         // Crear objeto de usuario
         UserModel newUser = UserModel(
@@ -68,14 +66,23 @@ class CloudFirestoreService {
           context: context,
           message: "Usuario registrado con éxito",
           duration: Duration(seconds: 10),
-          color: Colors.green
+          color: Colors.green,
         );
+
+        // Mostrar en consola si esta registrado el usuario
+        FirebaseAuth.instance.authStateChanges().listen((User? user) {
+          if (user == null) {
+            print('CloudFirestoreService - signup() || User is currently signed out!');
+          } else {
+            print('CloudFirestoreService - signup() || User is signed in!');
+            print('${ user }');
+          }
+        });
 
         // Cerrar la pantalla de registro después del éxito en el registro
         // ignore: use_build_context_synchronously
         Navigator.pop(context);
       }
-      
     } on FirebaseAuthException catch (e) {
       String msg = '';
       if (e.code == 'weak-password') {
@@ -94,8 +101,6 @@ class CloudFirestoreService {
         message: msg,
         duration: Duration(seconds: 10),
       );
-
     }
   }
-
 }
