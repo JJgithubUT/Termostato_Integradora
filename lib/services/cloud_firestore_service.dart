@@ -1,7 +1,18 @@
+// Librerías para encriptar
+import 'package:termostato_2/services/cifrado_service.dart';
+//import 'package:bcrypt/bcrypt.dart';
+// Librerías normales
 import 'package:flutter/material.dart';
+// Cloud service
 import 'package:cloud_firestore/cloud_firestore.dart';
+// Clase usuario
 import 'package:termostato_2/models/user_model.dart';
+// Autentiación de firebase
 import 'package:firebase_auth/firebase_auth.dart';
+// Almacenamiento local
+import 'package:shared_preferences/shared_preferences.dart';
+// Screen de termostato
+import 'package:termostato_2/screens/thermostatus_screen.dart';
 
 class CloudFirestoreService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -15,6 +26,73 @@ class CloudFirestoreService {
   }
 
   CloudFirestoreService._internal();
+
+  Future<void> saveLocalUser(UserModel user) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('idUsuario', user.id);
+    prefs.setString('contraseniaUsuario', user.contrasenia);
+    prefs.setString('emailUsuario', user.email);
+    prefs.setString('nombreUsuario', user.nombre);
+  }
+
+  Future<UserModel?> getLocalUser() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final id = prefs.getString('idUsuario');
+    final contrasenia = prefs.getString('contraseniaUsuario');
+    final email = prefs.getString('emailUsuario');
+    final nombre = prefs.getString('nombreUsuario');
+
+    if (id == null || nombre == null || email == null) {
+      return null;
+    }
+
+    print('Usuario local: $id, $nombre, $email, $contrasenia');
+
+    return UserModel(
+      id: id,
+      nombre: nombre,
+      email: email,
+      contrasenia: contrasenia ?? '',
+    );
+  }
+
+  Future<UserModel?> getRemoteUser() async {
+  final localUser = await getLocalUser();
+  if (localUser == null) {
+    // ignore: avoid_print
+    print('No hay usuario local guardado.');
+    return null;
+  }
+
+  try {
+    final querySnapshot = await _cloudFireStore
+        .collection('usuarios')
+        .where('id', isEqualTo: localUser.id)
+        .limit(1)
+        .get();
+
+    if (querySnapshot.docs.isEmpty) {
+      // ignore: avoid_print
+      print('Usuario remoto no encontrado.');
+      return null;
+    }
+
+    final userData = querySnapshot.docs.first.data();
+
+    final remoteUser = UserModel(
+      id: userData['id'] as String,
+      nombre: userData['nombre_usu'] as String,
+      email: userData['email_usu'] as String,
+      contrasenia: userData['contrasenia_usu'] as String,
+    );
+
+    return remoteUser;
+  } catch (e) {
+    // ignore: avoid_print
+    print('Error al obtener usuario remoto: $e');
+    return null;
+  }
+}
 
   Future<void> _showSnapMessage({
     required BuildContext context,
@@ -31,57 +109,71 @@ class CloudFirestoreService {
     );
   }
 
-  ///// Registrate /////
+  Future<void> insertDevice({required String corre}) async {
 
-  Future<void> signup({
+  }
+
+  ///// Servicios /////
+
+  Future<void> signUp({
     required BuildContext context,
     required String email,
     required String password,
     required String nombre,
   }) async {
     try {
+      // Encriptación de contraseña
+      String hashedPassword = AESHelper.encryptPassword(password);
+      print(hashedPassword);
+
+      // ------------------------------------
+      // Envío de datos a la base de datos
+      // ------------------------------------
+
       // Crear usuario en Firebase Authentication
       UserCredential userCredential = await _auth
-          .createUserWithEmailAndPassword(email: email, password: password);
+          .createUserWithEmailAndPassword(
+            email: email,
+            password: hashedPassword,
+          );
 
       User? user = userCredential.user;
 
       if (user != null) {
-        // Enviar correo de verificación
-        await user.sendEmailVerification(); ///????????????????????????
+        // Enviar correo de verificación (solo si no está verificado)
+        if (!user.emailVerified) {
+          // ignore: avoid_print
+          print('Enviando correo de verificación a: ${user.email}');
+          await user.sendEmailVerification();
+          // ignore: avoid_print
+          print('Correo de verificación enviado.');
+        }
 
         // Crear objeto de usuario
         UserModel newUser = UserModel(
           id: user.uid,
           nombre: nombre,
-          contrasenia: password,
+          contrasenia: hashedPassword,
           email: email,
         );
+        print(hashedPassword);
 
-        // Guardar el usuario en Firestore
+        // Guardar otros datos del usuario en Firestore Database
         await _cloudFireStore.collection('usuarios').add(newUser.toMap());
 
-        await _showSnapMessage(
+        // Mostrar mensaje
+        if (context.mounted) {
+          await _showSnapMessage(
+            context: context,
+            message:
+                "Usuario registrado con éxito. Verifique su correo electrónico.",
+            duration: Duration(seconds: 10),
+            color: Colors.green,
+          );
+
           // ignore: use_build_context_synchronously
-          context: context,
-          message: "Usuario registrado con éxito",
-          duration: Duration(seconds: 10),
-          color: Colors.green,
-        );
-
-        // Mostrar en consola si esta registrado el usuario
-        FirebaseAuth.instance.authStateChanges().listen((User? user) {
-          if (user == null) {
-            print('CloudFirestoreService - signup() || User is currently signed out!');
-          } else {
-            print('CloudFirestoreService - signup() || User is signed in!');
-            print('${ user }');
-          }
-        });
-
-        // Cerrar la pantalla de registro después del éxito en el registro
-        // ignore: use_build_context_synchronously
-        Navigator.pop(context);
+          Navigator.pop(context);
+        }
       }
     } on FirebaseAuthException catch (e) {
       String msg = '';
@@ -89,18 +181,112 @@ class CloudFirestoreService {
         msg = 'La contraseña proporcionada es demasiado débil.';
       } else if (e.code == 'email-already-in-use') {
         msg = 'Ya existe una cuenta con ese correo.';
-        // ignore: use_build_context_synchronously
-        Navigator.pop(context);
+        if (context.mounted) Navigator.pop(context);
       } else {
         msg = 'Error: ${e.message}';
-        //print('Error: ${e.message}');
       }
+      if (context.mounted) {
+        await _showSnapMessage(
+          context: context,
+          message: msg,
+          duration: Duration(seconds: 10),
+        );
+      }
+    }
+  }
+
+  Future<void> logIn({
+    required BuildContext context,
+    required String email,
+    required String password,
+  }) async {
+    try {
+      // Encriptar contraseña para comparar con la remota
+
+      String hashedPassword = AESHelper.encryptPassword(password);
+
+      // Autenticar con Firebase Authentication
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: hashedPassword,
+      );
+      print(hashedPassword);
+
+      User? user = userCredential.user;
+
+      if (user != null) {
+        // Verificar si el correo está confirmado
+        if (!user.emailVerified) {
+          await _showSnapMessage(
+            // ignore: use_build_context_synchronously
+            context: context,
+            message: "Por favor, verifica tu correo antes de iniciar sesión.",
+            duration: Duration(seconds: 5),
+            color: Colors.orange,
+          );
+          return;
+        }
+        print('pasado el usuario nulo');
+
+        // Obtener los datos del usuario desde Firestore
+        QuerySnapshot<Map<String, dynamic>> querySnapshot =
+            await _cloudFireStore
+                .collection('usuarios')
+                .where('email_usu', isEqualTo: email)
+                .get();
+
+        print(querySnapshot);
+
+        if (querySnapshot.docs.isNotEmpty) {
+          // Convertir a UserModel
+          UserModel loggedUser = UserModel.fromDocumentSnapshot(
+            querySnapshot.docs.first,
+          );
+
+          // Mostrar mensaje de éxito
+          await _showSnapMessage(
+            // ignore: use_build_context_synchronously
+            context: context,
+            message: "Bienvenido, ${loggedUser.nombre}!",
+            duration: Duration(seconds: 3),
+            color: Colors.green,
+          );
+
+          // Navegar a la siguiente pantalla
+          Navigator.pushReplacement(
+            // ignore: use_build_context_synchronously
+            context,
+            MaterialPageRoute(
+              builder: (context) => ThermostatusScreen()
+            )
+          );
+
+        } else {
+          await _showSnapMessage(
+            // ignore: use_build_context_synchronously
+            context: context,
+            message: "Error: No se encontraron datos del usuario.",
+            duration: Duration(seconds: 5),
+          );
+        }
+      }
+    } on FirebaseAuthException catch (e) {
+      String msg = '';
+      if (e.code == 'user-not-found') {
+        msg = 'No existe una cuenta con este correo.';
+      } else if (e.code == 'wrong-password') {
+        msg = 'Contraseña incorrecta.';
+      } else {
+        msg = 'Error: ${e.message}';
+      }
+
       await _showSnapMessage(
         // ignore: use_build_context_synchronously
-        context: context, // ← Pasar el contexto aquí también
+        context: context,
         message: msg,
-        duration: Duration(seconds: 10),
+        duration: Duration(seconds: 5),
       );
     }
   }
+
 }

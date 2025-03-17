@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:termostato_2/widgets/themes.dart';
 import 'package:termostato_2/services/cloud_firestore_service.dart';
+import 'package:termostato_2/services/validation_service.dart';
 
 class RegisterUserScreen extends StatefulWidget {
   const RegisterUserScreen({super.key});
@@ -11,112 +11,49 @@ class RegisterUserScreen extends StatefulWidget {
 }
 
 class _RegisterUserScreenState extends State<RegisterUserScreen> {
+  bool _obscureText = true;
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _contraseniaController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _alertEmailController = TextEditingController();
-  final TextEditingController _alertContraseniaController =
+  final TextEditingController _alertPasswordController =
       TextEditingController();
   final TextEditingController _alertNameController = TextEditingController();
-
-  bool _isValidEmail(String email) {
-    // Definir la expresión regular para validar correos electrónicos
-    String pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$';
-    RegExp regex = RegExp(pattern);
-
-    return regex.hasMatch(email);
-  }
-
-  bool _isValidPassword(String password) {
-    // No debe contener espacios
-    if (password.contains(RegExp(r'\s'))) {
-      return false;
-    }
-    // Definir los criterios
-    bool hasUppercase = password.contains(RegExp(r'[A-Z]'));
-    bool hasLowercase = password.contains(RegExp(r'[a-z]'));
-    bool hasDigits = password.contains(RegExp(r'[0-9]'));
-    bool hasSpecialCharacters = password.contains(
-      RegExp(r'[!@#$%^&*(),.?":{}|<>]'),
-    );
-    bool hasMinLength = password.length >= 8;
-
-    return hasUppercase &&
-        hasLowercase &&
-        hasDigits &&
-        hasSpecialCharacters &&
-        hasMinLength;
-  }
-
-  bool _isValidName(String name) {
-    name.trim();
-    bool hasMinLength = name.length >= 10;
-    bool hasMaxLength = name.length <= 50;
-
-    return hasMaxLength && hasMinLength;
-  }
-
-  /* void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(Icons.error, color: Colors.white),
-            SizedBox(width: 8.0),
-            Expanded(
-              child: Text(
-                message,
-                style: snackBarTextStyle, // Usa el estilo definido en themes.dart
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: Colors.redAccent, // Usa el color definido en themes.dart
-        duration: const Duration(seconds: 4),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0), // Usa el borde definido en themes.dart
-        ),
-        action: SnackBarAction(
-          label: 'X',
-          textColor: Colors.white,
-          onPressed: () {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          },
-        ),
-      ),
-    );
-  } */
+  final ValidationService _validationService = ValidationService();
 
   Future<void> _register() async {
-    _alertEmailController.text = '';
-    _alertContraseniaController.text = '';
-    _alertNameController.text = '';
     setState(() {});
     //Navigator.pop(context);
-    if (!_isValidEmail(_emailController.text)) {
+    if (!_validationService.isValidEmail(_emailController.text)) {
       _alertEmailController.text = 'Correo no validable';
     }
-    if (!_isValidPassword(_contraseniaController.text)) {
-      _alertContraseniaController.text = 'Contraseña no validable';
+    if (!_validationService.isValidPassword(_passwordController.text)) {
+      _alertPasswordController.text = 'Contraseña no validable';
     }
-    if (!_isValidName(_nameController.text)) {
+    if (!_validationService.isValidName(_nameController.text)) {
       _alertNameController.text = 'Nombre menor a 10 caracteres';
     }
 
-    if (_isValidEmail(_emailController.text) &&
-        _isValidPassword(_contraseniaController.text) &&
-        _isValidName(_nameController.text)) {
-      await CloudFirestoreService().signup(
+    if (_validationService.isValidEmail(_emailController.text) &&
+        _validationService.isValidPassword(_passwordController.text) &&
+        _validationService.isValidName(_nameController.text)) {
+      await CloudFirestoreService().signUp(
         context: context,
         email: _emailController.text,
-        password: _contraseniaController.text,
+        password: _passwordController.text,
         nombre: _nameController.text,
       );
-      _nameController.text = '';
-      _emailController.text = '';
-      _contraseniaController.text = '';
+      cleanFields();
     }
+  }
+
+  void cleanFields() {
+    _emailController.text = '';
+    _passwordController.text = '';
+    _nameController.text = '';
+    _alertEmailController.text = '';
+    _alertPasswordController.text = '';
+    _alertNameController.text = '';
   }
 
   @override
@@ -149,26 +86,6 @@ class _RegisterUserScreenState extends State<RegisterUserScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                /* const SizedBox(height: 10), */
-                TextField(
-                  maxLength: 50,
-                  keyboardType: TextInputType.visiblePassword,
-                  controller: _contraseniaController,
-                  decoration: InputDecoration(
-                    labelText: "Contraseña",
-                    labelStyle: inputLabelStyle,
-                  ),
-                  obscureText: false,
-                ),
-                Text(
-                  _alertContraseniaController.text,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.red,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                /* const SizedBox(height: 10), */
                 TextField(
                   maxLength: 50,
                   keyboardType: TextInputType.text,
@@ -186,14 +103,46 @@ class _RegisterUserScreenState extends State<RegisterUserScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                /* const SizedBox(height: 10), */
+                TextField(
+                  obscureText: _obscureText,
+                  maxLength: 50,
+                  keyboardType: TextInputType.visiblePassword,
+                  controller: _passwordController,
+                  decoration: InputDecoration(
+                    labelText: "Contraseña",
+                    labelStyle: inputLabelStyle,
+                    suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureText
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscureText = !_obscureText;
+                          });
+                        },
+                    ),
+                  ),
+                ),
+                Text(
+                  _alertPasswordController.text,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 ElevatedButton(
                   onPressed: _register,
                   child: const Text("Registrar"),
                 ),
                 const SizedBox(height: 10),
                 ElevatedButton(
-                  onPressed: () {}, // Navegación a registro
+                  onPressed: () {
+                    cleanFields();
+                    Navigator.of(context).pop();
+                  }, // Navegación al login
                   child: const Text("Cancelar"),
                 ),
               ],

@@ -25,9 +25,9 @@ class UserModel {
   factory UserModel.fromDocumentSnapshot(DocumentSnapshot doc) {
     return UserModel(
       id: doc.id,
-      nombre: doc['nombre'],
-      contrasenia: doc['contrasenia'],
-      email: doc['email']
+      nombre: doc['nombre_usu'],
+      contrasenia: doc['contrasenia_usu'],
+      email: doc['email_usu']
     );
   }
 

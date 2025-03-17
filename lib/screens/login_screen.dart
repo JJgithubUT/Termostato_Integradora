@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:termostato_2/screens/register_user_screen.dart';
+import 'package:termostato_2/services/cloud_firestore_service.dart';
+import 'package:termostato_2/services/validation_service.dart';
 import '../widgets/themes.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -10,28 +12,45 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  bool _obscureText = true;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  String? _errorMessage;
+  final TextEditingController _alertEmailController = TextEditingController();
+  final TextEditingController _alertPasswordController = TextEditingController();
+  final ValidationService _validationService = ValidationService();
 
   @override
   void initState() {
     super.initState();
   }
 
-  Future<void> _login() async {
+  Future<void> _logIn() async {
+    setState(() {});
+    if (!_validationService.isValidEmail(_emailController.text)) {
+      _alertEmailController.text = 'Correo no validable';
+    }
+    if (!_validationService.isValidPassword(_passwordController.text)) {
+      _alertPasswordController.text = 'Contraseña no validable';
+    }
+
+    if (_validationService.isValidEmail(_emailController.text) &&
+        _validationService.isValidPassword(_passwordController.text)) {
+      await CloudFirestoreService().logIn(
+        context: context,
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+      cleanFields();
+    }
     
   }
 
-  /* void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 4),
-      ),
-    );
-  } */
+  void cleanFields() {
+    _emailController.text = '';
+    _passwordController.text = '';
+    _alertEmailController.text = '';
+    _alertPasswordController.text = '';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,35 +66,62 @@ class _LoginScreenState extends State<LoginScreen> {
                 Text("Iniciar Sesión", style: loginTitleStyle),
                 const SizedBox(height: 20),
                 TextField(
+                  maxLength: 50,
+                  keyboardType: TextInputType.emailAddress,
                   controller: _emailController,
                   decoration: InputDecoration(
                     labelText: "Email",
                     labelStyle: inputLabelStyle,
                   ),
                 ),
+                Text(
+                  _alertEmailController.text,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 10),
                 TextField(
+                  obscureText: _obscureText,
+                  maxLength: 50,
+                  keyboardType: TextInputType.visiblePassword,
                   controller: _passwordController,
                   decoration: InputDecoration(
                     labelText: "Contraseña",
                     labelStyle: inputLabelStyle,
+                    suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureText
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscureText = !_obscureText;
+                          });
+                        },
+                    ),
                   ),
-                  obscureText: true,
+                ),
+                Text(
+                  _alertPasswordController.text,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 10),
-                if (_errorMessage != null)
-                  Text(
-                    _errorMessage!,
-                    style: const TextStyle(color: Colors.red, fontSize: 14),
-                  ),
-                const SizedBox(height: 10),
                 ElevatedButton(
-                  onPressed: _login,
+                  onPressed: _logIn,
                   child: const Text("Ingresar"),
                 ),
                 const SizedBox(height: 10),
                 TextButton(
                   onPressed: () {
+                    cleanFields();
                     Navigator.push(
                       context,
                       MaterialPageRoute(
