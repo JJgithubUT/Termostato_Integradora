@@ -1,4 +1,5 @@
 // Librerías para encriptar
+import 'package:termostato_2/models/device_model.dart';
 import 'package:termostato_2/services/cifrado_service.dart';
 //import 'package:bcrypt/bcrypt.dart';
 // Librerías normales
@@ -27,72 +28,73 @@ class CloudFirestoreService {
 
   CloudFirestoreService._internal();
 
-  Future<void> saveLocalUser(UserModel user) async {
+  /// -----------------
+  ///// Funciones complementarias /////
+  /// -----------------
+
+  Future<void> saveLocalUser({
+    required String email,
+    required String password,
+  }) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString('idUsuario', user.id);
-    prefs.setString('contraseniaUsuario', user.contrasenia);
-    prefs.setString('emailUsuario', user.email);
-    prefs.setString('nombreUsuario', user.nombre);
+    prefs.setString('emailUsuario', email);
+    prefs.setString('contraseniaUsuario', password);
   }
 
-  Future<UserModel?> getLocalUser() async {
+  Future<Map<String, String>?> getLocalUser() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    final id = prefs.getString('idUsuario');
-    final contrasenia = prefs.getString('contraseniaUsuario');
     final email = prefs.getString('emailUsuario');
-    final nombre = prefs.getString('nombreUsuario');
+    final contrasenia = prefs.getString('contraseniaUsuario');
 
-    if (id == null || nombre == null || email == null) {
+    if (contrasenia == null || email == null) {
       return null;
     }
 
-    print('Usuario local: $id, $nombre, $email, $contrasenia');
+    // ignore: avoid_print
+    print('Usuario local: $email, $contrasenia');
 
-    return UserModel(
-      id: id,
-      nombre: nombre,
-      email: email,
-      contrasenia: contrasenia ?? '',
-    );
+    // Devolver mapa del usuario local cencontrado
+    return {'emailUsuario': email, 'contraseniaUsuario': contrasenia};
   }
 
   Future<UserModel?> getRemoteUser() async {
-  final localUser = await getLocalUser();
-  if (localUser == null) {
-    // ignore: avoid_print
-    print('No hay usuario local guardado.');
-    return null;
-  }
-
-  try {
-    final querySnapshot = await _cloudFireStore
-        .collection('usuarios')
-        .where('id', isEqualTo: localUser.id)
-        .limit(1)
-        .get();
-
-    if (querySnapshot.docs.isEmpty) {
+    var localUser = await getLocalUser();
+    if (localUser == null) {
       // ignore: avoid_print
-      print('Usuario remoto no encontrado.');
+      print('No hay usuario local guardado.');
       return null;
     }
 
-    final userData = querySnapshot.docs.first.data();
+    try {
+      final querySnapshot =
+          await _cloudFireStore
+              .collection('usuarios')
+              .where('email_usu', isEqualTo: localUser['emailUsuario'])
+              .limit(1)
+              .get();
 
-    final remoteUser = UserModel(
-      id: userData['id'] as String,
-      nombre: userData['nombre_usu'] as String,
-      email: userData['email_usu'] as String,
-      contrasenia: userData['contrasenia_usu'] as String,
-    );
+      if (querySnapshot.docs.isEmpty) {
+        // ignore: avoid_print
+        print('Usuario remoto no encontrado.');
+        return null;
+      }
 
-    return remoteUser;
-  } catch (e) {
-    // ignore: avoid_print
-    print('Error al obtener usuario remoto: $e');
-    return null;
+      final userData = querySnapshot.docs.first.data();
+
+      final remoteUser = UserModel(
+        id: userData['id'] as String,
+        nombre: userData['nombre_usu'] as String,
+        email: userData['email_usu'] as String,
+        contrasenia: userData['contrasenia_usu'] as String,
+      );
+
+      return remoteUser;
+    } catch (e) {
+      // ignore: avoid_print
+      print('Error al obtener usuario remoto: $e');
+      return null;
+    }
   }
-}
 
   Future<void> _showSnapMessage({
     required BuildContext context,
@@ -109,11 +111,42 @@ class CloudFirestoreService {
     );
   }
 
-  Future<void> insertDevice({required String corre}) async {
+  /// -----------------
+  ///// Servicios /////
+  /// -----------------
 
+  ///// Dispositivos /////
+
+  Future<void> insertDevice(DeviceModel device) async {
+    await _cloudFireStore.collection('dispositivos').add(device.toMap());
   }
 
-  ///// Servicios /////
+  Stream<DeviceModel?> getDeviceStream() {
+    // Obtener el usuario autenticado
+    User? user = _auth.currentUser;
+    if (user == null) {
+      // Si no hay usuario autenticado, retornamos un stream vacío
+      return Stream.value(null);
+    }
+
+    // Escuchar los cambios en los dispositivos del usuario
+    return _cloudFireStore
+        .collection('dispositivos')
+        .where('correo_usu', isEqualTo: user.email)
+        .limit(1)
+        .snapshots() // Aquí usamos snapshots para escuchar cambios en tiempo real
+        .map((querySnapshot) {
+          if (querySnapshot.docs.isNotEmpty) {
+            // Si hay dispositivos, retornamos el primer dispositivo
+            return DeviceModel.fromDocumentSnapshot(querySnapshot.docs.first);
+          } else {
+            // Si no hay dispositivos, retornamos null
+            return null;
+          }
+        });
+  }
+
+  ///// Usuarios /////
 
   Future<void> signUp({
     required BuildContext context,
@@ -124,7 +157,6 @@ class CloudFirestoreService {
     try {
       // Encriptación de contraseña
       String hashedPassword = AESHelper.encryptPassword(password);
-      print(hashedPassword);
 
       // ------------------------------------
       // Envío de datos a la base de datos
@@ -156,10 +188,25 @@ class CloudFirestoreService {
           contrasenia: hashedPassword,
           email: email,
         );
+
+        // ignore: avoid_print
         print(hashedPassword);
 
         // Guardar otros datos del usuario en Firestore Database
         await _cloudFireStore.collection('usuarios').add(newUser.toMap());
+
+        // Guardar nuevo dispositivo asignado al usuario registrado
+        await insertDevice(
+          DeviceModel(
+            id: '',
+            codigo: '¿Código?',
+            correo: email,
+            estado: false,
+            nombre: '',
+            tempActual: 0,
+            tempObjetivo: 0,
+          ),
+        );
 
         // Mostrar mensaje
         if (context.mounted) {
@@ -210,7 +257,6 @@ class CloudFirestoreService {
         email: email,
         password: hashedPassword,
       );
-      print(hashedPassword);
 
       User? user = userCredential.user;
 
@@ -226,7 +272,6 @@ class CloudFirestoreService {
           );
           return;
         }
-        print('pasado el usuario nulo');
 
         // Obtener los datos del usuario desde Firestore
         QuerySnapshot<Map<String, dynamic>> querySnapshot =
@@ -234,8 +279,6 @@ class CloudFirestoreService {
                 .collection('usuarios')
                 .where('email_usu', isEqualTo: email)
                 .get();
-
-        print(querySnapshot);
 
         if (querySnapshot.docs.isNotEmpty) {
           // Convertir a UserModel
@@ -252,15 +295,15 @@ class CloudFirestoreService {
             color: Colors.green,
           );
 
+          // Guardar localmente el usuario
+          saveLocalUser(email: email, password: password);
+
           // Navegar a la siguiente pantalla
           Navigator.pushReplacement(
             // ignore: use_build_context_synchronously
             context,
-            MaterialPageRoute(
-              builder: (context) => ThermostatusScreen()
-            )
+            MaterialPageRoute(builder: (context) => ThermostatusScreen()),
           );
-
         } else {
           await _showSnapMessage(
             // ignore: use_build_context_synchronously
@@ -289,4 +332,10 @@ class CloudFirestoreService {
     }
   }
 
+  /* Future<void> autoLogIn() async {
+    final remoteUser = getRemoteUser();
+    if (remoteUser != null) {
+      
+    }
+  } */
 }

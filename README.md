@@ -24,6 +24,14 @@ En casos extremos:
 En casos aun más extremos
 - flutter pub upgrade --force
 
+## ー・－・－・ー・－・－・
+
+## Método de instalación de las dependencias de abajo
+
+## ・－・－・ー・－・－・ー
+
+- flutter pub get
+
 ## Instalación de firebase authentication
 
 flutter pub add firebase_auth

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:termostato_2/models/device_model.dart';
 //import 'package:termostato_2/screens/account_screen.dart';
-import 'package:termostato_2/screens/login_screen.dart';
 import '../widgets/themes.dart';
 import 'package:termostato_2/services/cloud_firestore_service.dart';
 
@@ -13,6 +13,19 @@ class ThermostatusScreen extends StatefulWidget {
 
 class _ThermostatusScreenState extends State<ThermostatusScreen> {
   double temperature = 22.0;
+  late Stream<DeviceModel?> _deviceStream;
+  late TextEditingController _temperatureController;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Inicializar el Stream para obtener los dispositivos en tiempo real
+    _deviceStream = CloudFirestoreService().getDeviceStream();
+
+    // Inicializar los controladores de texto
+    _temperatureController = TextEditingController();
+  }
 
   @override
   Widget build(BuildContext context) {
