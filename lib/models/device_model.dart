@@ -6,8 +6,6 @@ class DeviceModel {
   final String correo;
   final bool estado;
   final String nombre;
-  final double tempActual;
-  final double tempObjetivo;
 
   DeviceModel({
     required this.id,
@@ -15,8 +13,6 @@ class DeviceModel {
     required this.correo,
     required this.estado,
     required this.nombre,
-    required this.tempActual,
-    required this.tempObjetivo,
   });
 
   // Convertir un Dispositivo a un Mapa
@@ -26,8 +22,6 @@ class DeviceModel {
       'correo_usu': correo,
       'estado_dis': estado,
       'nombre_dis': nombre,
-      'temp_actual_dis': tempActual,
-      'temp_objetivo_dis': tempObjetivo,
     };
   }
 
@@ -38,8 +32,6 @@ class DeviceModel {
       correo: doc['correo_usu'],
       estado: doc['estado_dis'],
       nombre: doc['nombre_dis'],
-      tempActual: (doc['temp_actual_dis'] as num).toDouble(),
-      tempObjetivo: (doc['temp_objetivo_dis'] as num).toDouble(),
     );
   }
 }

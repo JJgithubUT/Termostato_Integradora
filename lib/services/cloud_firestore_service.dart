@@ -1,5 +1,11 @@
-// Librerías para encriptar
+// Device Model
+//import 'dart:math';
+
 import 'package:termostato_2/models/device_model.dart';
+// Dynamic device Model
+import 'package:termostato_2/models/dynamic_device_model.dart';
+import 'package:termostato_2/screens/login_screen.dart';
+// Librerías para encriptar
 import 'package:termostato_2/services/cifrado_service.dart';
 //import 'package:bcrypt/bcrypt.dart';
 // Librerías normales
@@ -8,14 +14,17 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 // Clase usuario
 import 'package:termostato_2/models/user_model.dart';
-// Autentiación de firebase
+// Autenticación de firebase
 import 'package:firebase_auth/firebase_auth.dart';
 // Almacenamiento local
 import 'package:shared_preferences/shared_preferences.dart';
+// Realtime Database
+import 'package:firebase_database/firebase_database.dart';
 // Screen de termostato
 import 'package:termostato_2/screens/thermostatus_screen.dart';
 
 class CloudFirestoreService {
+  final DatabaseReference _dbRef = FirebaseDatabase.instance.ref();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   static final CloudFirestoreService _instance =
       CloudFirestoreService._internal();
@@ -53,15 +62,28 @@ class CloudFirestoreService {
     // ignore: avoid_print
     print('Usuario local: $email, $contrasenia');
 
-    // Devolver mapa del usuario local cencontrado
+    // Devolver mapa del usuario local encontrado
     return {'emailUsuario': email, 'contraseniaUsuario': contrasenia};
+  }
+
+  Future<void> cleanLocalUser() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    try {
+      await prefs.clear();
+      // ignore: avoid_print
+      print('Datos locales eliminados correctamente.');
+    } catch (e) {
+      // ignore: avoid_print
+      print('Error al limpiar los datos locales: $e');
+    }
   }
 
   Future<UserModel?> getRemoteUser() async {
     var localUser = await getLocalUser();
     if (localUser == null) {
-      // ignore: avoid_print
+      print('.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.--');
       print('No hay usuario local guardado.');
+      print('.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.');
       return null;
     }
 
@@ -74,29 +96,48 @@ class CloudFirestoreService {
               .get();
 
       if (querySnapshot.docs.isEmpty) {
-        // ignore: avoid_print
+        print('.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.');
         print('Usuario remoto no encontrado.');
+        print('.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.');
         return null;
       }
 
       final userData = querySnapshot.docs.first.data();
 
       final remoteUser = UserModel(
-        id: userData['id'] as String,
-        nombre: userData['nombre_usu'] as String,
-        email: userData['email_usu'] as String,
-        contrasenia: userData['contrasenia_usu'] as String,
+        id: querySnapshot.docs.first.id,
+        nombre: userData['nombre_usu']?.toString() ?? '',
+        email: userData['email_usu']?.toString() ?? '',
+        contrasenia: AESHelper.decryptPassword(
+          userData['contrasenia_usu']!.toString(),
+        ),
       );
+
+      print('getRemoteUser() || id: ${remoteUser.id}');
 
       return remoteUser;
     } catch (e) {
-      // ignore: avoid_print
+      print('.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.');
       print('Error al obtener usuario remoto: $e');
+      print('.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.');
       return null;
     }
   }
 
-  Future<void> _showSnapMessage({
+  /* Future<void> saveLocalDeviceCode({
+    required String code
+  }) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('deviceCode', code);
+  }
+
+  Future<String?> getLocalDeviceCode() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final code = prefs.getString('deviceCode');
+    return code;
+  } */
+
+  Future<void> showSnapMessage({
     required BuildContext context,
     required String message,
     required Duration duration,
@@ -121,29 +162,125 @@ class CloudFirestoreService {
     await _cloudFireStore.collection('dispositivos').add(device.toMap());
   }
 
-  Stream<DeviceModel?> getDeviceStream() {
-    // Obtener el usuario autenticado
-    User? user = _auth.currentUser;
-    if (user == null) {
-      // Si no hay usuario autenticado, retornamos un stream vacío
-      return Stream.value(null);
+  Future<DeviceModel?> getDevice(BuildContext context) async {
+    final user = await getLocalUser();
+    final email = user?['emailUsuario'];
+
+    if (email == null) {
+      // ignore: avoid_print
+      print('No se encontró el email del usuario local.');
+      return null;
     }
 
-    // Escuchar los cambios en los dispositivos del usuario
-    return _cloudFireStore
-        .collection('dispositivos')
-        .where('correo_usu', isEqualTo: user.email)
-        .limit(1)
-        .snapshots() // Aquí usamos snapshots para escuchar cambios en tiempo real
-        .map((querySnapshot) {
-          if (querySnapshot.docs.isNotEmpty) {
-            // Si hay dispositivos, retornamos el primer dispositivo
-            return DeviceModel.fromDocumentSnapshot(querySnapshot.docs.first);
-          } else {
-            // Si no hay dispositivos, retornamos null
-            return null;
-          }
-        });
+    print("Dispositivo encontrado");
+
+    try {
+      final querySnapshot =
+          await _cloudFireStore
+              .collection('dispositivos')
+              .where('correo_usu', isEqualTo: email)
+              .limit(1)
+              .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        return null;
+      }
+
+      final deviceData = querySnapshot.docs.first.data();
+
+      return DeviceModel(
+        id: deviceData['id'] as String,
+        codigo: deviceData['codigo_dis'] as String,
+        correo: deviceData['correo_usu'] as String,
+        estado: deviceData['estado_dis'] as bool,
+        nombre: deviceData['nombre_dis'] as String,
+      );
+    } catch (e) {
+      // ignore: avoid_print
+      print('Error: $e');
+      showSnapMessage(
+        // ignore: use_build_context_synchronously
+        context: context,
+        message: 'Error al obtener dispositivo: $e',
+        duration: Duration(seconds: 5)
+      );
+    }
+
+    return null; // Retornar null si no hay dispositivos o ocurre algún error.
+  }
+
+  Future<void> updateDevice({
+    required String codigo,
+    required String correo,
+    required String nombre,
+    required BuildContext context,
+  }) async {
+    try {
+      await _cloudFireStore
+          .collection('dispositivos')
+          .where('correo_usu', isEqualTo: correo)
+          .get()
+          .then((querySnapshot) {
+            if (querySnapshot.docs.isNotEmpty) {
+              querySnapshot.docs.first.reference.update({
+                'codigo_dis': codigo,
+                'nombre_dis': nombre,
+              });
+            } else {
+              throw Exception(
+                "No se encontró un dispositivo con el correo proporcionado.",
+              );
+            }
+          });
+    } catch (e) {
+      // ignore: avoid_print
+      print('CloudService || updateDevice(): Error: ${e.toString()}');
+      showSnapMessage(
+        // ignore: use_build_context_synchronously
+        context: context,
+        message: 'Error al actualizar dispositivo: ${e.toString()}',
+        duration: Duration(seconds: 5),
+      );
+    }
+  }
+
+  // No se elimina ninguna dispositivo, solo se pueden seguir asignando
+
+  // El insertar dispositivo en tiempo real ocurre desde el dispositivo IOT,no se eliminan.
+  //Se conecta el dispositivo del usuario a los ya existentes de la firestore realtime database
+
+  Stream<DynamicDeviceModel?> getDynamicDevice(String deviceCode) {
+    return _dbRef.child(deviceCode).onValue.map((event) {
+      final data = event.snapshot.value as Map<dynamic, dynamic>?;
+      if (data != null) {
+        return DynamicDeviceModel(
+          tempActual: (data['temp_actual_dis'] as num).toDouble(),
+          tempObjetivo: (data['temp_objetivo_dis'] as num).toDouble(),
+        );
+      } else {
+        return null; // Si no hay datos, retorna null
+      }
+    });
+  }
+
+  Future<void> updateDynamicDevice(
+    String deviceCode,
+    double tempObjetivo,
+    BuildContext context
+  ) async {
+    try {
+      await _dbRef.child(deviceCode).update({'temp_objetivo_dis': tempObjetivo});
+    } catch (e) {
+      // ignore: avoid_print
+      print('Error al actualizar el dispositivo dinámico: $e');
+      showSnapMessage(
+        // ignore: use_build_context_synchronously
+        context: context,
+        message: 'Error al actualizar el dispositivo dinámico: $e',
+        duration: Duration(seconds: 5)
+      );
+    }
+    
   }
 
   ///// Usuarios /////
@@ -199,18 +336,16 @@ class CloudFirestoreService {
         await insertDevice(
           DeviceModel(
             id: '',
-            codigo: '¿Código?',
+            codigo: '',
             correo: email,
             estado: false,
             nombre: '',
-            tempActual: 0,
-            tempObjetivo: 0,
           ),
         );
 
         // Mostrar mensaje
         if (context.mounted) {
-          await _showSnapMessage(
+          await showSnapMessage(
             context: context,
             message:
                 "Usuario registrado con éxito. Verifique su correo electrónico.",
@@ -233,7 +368,7 @@ class CloudFirestoreService {
         msg = 'Error: ${e.message}';
       }
       if (context.mounted) {
-        await _showSnapMessage(
+        await showSnapMessage(
           context: context,
           message: msg,
           duration: Duration(seconds: 10),
@@ -263,7 +398,7 @@ class CloudFirestoreService {
       if (user != null) {
         // Verificar si el correo está confirmado
         if (!user.emailVerified) {
-          await _showSnapMessage(
+          await showSnapMessage(
             // ignore: use_build_context_synchronously
             context: context,
             message: "Por favor, verifica tu correo antes de iniciar sesión.",
@@ -287,7 +422,7 @@ class CloudFirestoreService {
           );
 
           // Mostrar mensaje de éxito
-          await _showSnapMessage(
+          await showSnapMessage(
             // ignore: use_build_context_synchronously
             context: context,
             message: "Bienvenido, ${loggedUser.nombre}!",
@@ -305,7 +440,7 @@ class CloudFirestoreService {
             MaterialPageRoute(builder: (context) => ThermostatusScreen()),
           );
         } else {
-          await _showSnapMessage(
+          await showSnapMessage(
             // ignore: use_build_context_synchronously
             context: context,
             message: "Error: No se encontraron datos del usuario.",
@@ -323,7 +458,7 @@ class CloudFirestoreService {
         msg = 'Error: ${e.message}';
       }
 
-      await _showSnapMessage(
+      await showSnapMessage(
         // ignore: use_build_context_synchronously
         context: context,
         message: msg,
@@ -332,10 +467,89 @@ class CloudFirestoreService {
     }
   }
 
-  /* Future<void> autoLogIn() async {
-    final remoteUser = getRemoteUser();
-    if (remoteUser != null) {
-      
+  Future<void> logOut(BuildContext context) async {
+    try {
+      await FirebaseAuth.instance.signOut(); // Cerrar sesión en Firebase Auth
+      CloudFirestoreService().cleanLocalUser(); // Limpiar usuario local
+
+      Navigator.pushAndRemoveUntil(
+        // ignore: use_build_context_synchronously
+        context,
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+        (Route<dynamic> route) => false,
+      );
+
+      // ignore: avoid_print
+      print("Usuario cerró sesión correctamente.");
+      showSnapMessage(
+        // ignore: use_build_context_synchronously
+        context: context,
+        message: "Usuario cerró sesión correctamente.",
+        duration: Duration(seconds: 5),
+        color: Colors.yellow,
+      );
+    } catch (e) {
+      // ignore: avoid_print
+      print("Error al cerrar sesión: $e");
+      showSnapMessage(
+        // ignore: use_build_context_synchronously
+        context: context,
+        message: "Error al cerrar sesión: $e",
+        duration: Duration(seconds: 5),
+      );
     }
-  } */
+  }
+
+  Future<void> updateUser(UserModel user, BuildContext context) async {
+    try {
+      // Encriptación de la nueva contraseña
+      String hashedPassword = AESHelper.encryptPassword(user.contrasenia);
+
+      // Actualizar el usuario en Firebase Authentication
+      User? firebaseUser = _auth.currentUser;
+      if (firebaseUser != null) {
+        // Actualizar la contraseña en Firebase Authentication si es necesario
+        await firebaseUser.updatePassword(user.contrasenia);
+
+        print('updateUser() || id: ${user.id}');
+
+        // Actualizar datos del usuario en Firestore
+        await _cloudFireStore.collection('usuarios').doc(user.id).update({
+          'nombre_usu': user.nombre,
+          'contrasenia_usu':
+              hashedPassword, // Actualizar la contraseña encriptada
+        });
+
+        // Mostrar mensaje de éxito
+        // ignore: avoid_print
+        print('//// Usuario actualizado con éxito.');
+        showSnapMessage(
+          // ignore: use_build_context_synchronously
+          context: context,
+          message: "Usuario actualizado con éxito.",
+          duration: Duration(seconds: 5),
+          color: Colors.green,
+        );
+
+        // Navegar l termostato
+        Navigator.pushReplacement(
+          // ignore: use_build_context_synchronously
+          context,
+          MaterialPageRoute(builder: (context) => ThermostatusScreen()),
+        );
+      } else {
+        throw Exception('Usuario no autenticado.');
+      }
+    } catch (e) {
+      // Manejo de errores
+      // ignore: avoid_print
+      print('//// Error al actualizar el usuario: $e');
+      showSnapMessage(
+        // ignore: use_build_context_synchronously
+        context: context,
+        message: "Error al actualizar el usuario: $e",
+        duration: Duration(seconds: 10),
+      );
+    }
+  }
 }

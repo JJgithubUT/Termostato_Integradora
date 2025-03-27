@@ -46,6 +46,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '256294944069',
     projectId: 'termostato-3ab33',
     authDomain: 'termostato-3ab33.firebaseapp.com',
+    databaseURL: 'https://termostato-3ab33-default-rtdb.firebaseio.com',
     storageBucket: 'termostato-3ab33.firebasestorage.app',
   );
 
@@ -54,16 +55,18 @@ class DefaultFirebaseOptions {
     appId: '1:256294944069:android:b0e4773aa09f4ff71e922c',
     messagingSenderId: '256294944069',
     projectId: 'termostato-3ab33',
+    databaseURL: 'https://termostato-3ab33-default-rtdb.firebaseio.com',
     storageBucket: 'termostato-3ab33.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyD6moyGcgPF9_Buq2PwWZqMBTzC2PPqP5Y',
-    appId: '1:256294944069:ios:f2bc50587344a17f1e922c',
+    appId: '1:256294944069:ios:4d8e30998f9849f91e922c',
     messagingSenderId: '256294944069',
     projectId: 'termostato-3ab33',
+    databaseURL: 'https://termostato-3ab33-default-rtdb.firebaseio.com',
     storageBucket: 'termostato-3ab33.firebasestorage.app',
-    iosBundleId: 'com.example.termostato2',
+    iosBundleId: 'com.example.app',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -71,6 +74,7 @@ class DefaultFirebaseOptions {
     appId: '1:256294944069:ios:f2bc50587344a17f1e922c',
     messagingSenderId: '256294944069',
     projectId: 'termostato-3ab33',
+    databaseURL: 'https://termostato-3ab33-default-rtdb.firebaseio.com',
     storageBucket: 'termostato-3ab33.firebasestorage.app',
     iosBundleId: 'com.example.termostato2',
   );
@@ -81,6 +85,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '256294944069',
     projectId: 'termostato-3ab33',
     authDomain: 'termostato-3ab33.firebaseapp.com',
+    databaseURL: 'https://termostato-3ab33-default-rtdb.firebaseio.com',
     storageBucket: 'termostato-3ab33.firebasestorage.app',
   );
+
 }

@@ -37,13 +37,18 @@ class _RegisterUserScreenState extends State<RegisterUserScreen> {
     if (_validationService.isValidEmail(_emailController.text) &&
         _validationService.isValidPassword(_passwordController.text) &&
         _validationService.isValidName(_nameController.text)) {
-      await CloudFirestoreService().signUp(
-        context: context,
-        email: _emailController.text,
-        password: _passwordController.text,
-        nombre: _nameController.text,
-      );
-      cleanFields();
+      try {
+        await CloudFirestoreService().signUp(
+          context: context,
+          email: _emailController.text,
+          password: _passwordController.text,
+          nombre: _nameController.text,
+        );
+        cleanFields();
+      } catch (e) {
+        // ignore: avoid_print
+        print("Error en el registro: $e");
+      }
     }
   }
 
@@ -112,16 +117,14 @@ class _RegisterUserScreenState extends State<RegisterUserScreen> {
                     labelText: "Contraseña",
                     labelStyle: inputLabelStyle,
                     suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscureText
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscureText = !_obscureText;
-                          });
-                        },
+                      icon: Icon(
+                        _obscureText ? Icons.visibility : Icons.visibility_off,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscureText = !_obscureText;
+                        });
+                      },
                     ),
                   ),
                 ),

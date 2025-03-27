@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:termostato_2/models/device_model.dart';
-//import 'package:termostato_2/screens/account_screen.dart';
+import 'package:termostato_2/models/device_model.dart'; // Asegúrate de que esta clase tenga los campos correctos
+import 'package:termostato_2/models/dynamic_device_model.dart';
+import 'package:termostato_2/screens/account_screen.dart';
 import '../widgets/themes.dart';
 import 'package:termostato_2/services/cloud_firestore_service.dart';
 
@@ -12,19 +13,104 @@ class ThermostatusScreen extends StatefulWidget {
 }
 
 class _ThermostatusScreenState extends State<ThermostatusScreen> {
-  double temperature = 22.0;
-  late Stream<DeviceModel?> _deviceStream;
-  late TextEditingController _temperatureController;
+  final CloudFirestoreService _dbService = CloudFirestoreService();
+  double temperature = 20.0; // Inicializa con el valor que recibas de Firebase
+  DeviceModel? device;
+
+  final TextEditingController _codigoeditingController =
+      TextEditingController();
+  final TextEditingController _correoeditingController =
+      TextEditingController();
+  final TextEditingController _nombreeditingController =
+      TextEditingController();
+
+  // Variable para almacenar los datos dinámicos del dispositivo
+  DynamicDeviceModel? dynamicDevice;
 
   @override
   void initState() {
     super.initState();
+    _getDynamicDevice();
+    /* _initializeDevice(); */
+  }
 
-    // Inicializar el Stream para obtener los dispositivos en tiempo real
-    _deviceStream = CloudFirestoreService().getDeviceStream();
+  /* Future<void> _initializeDevice() async {
+    await _getDevice();
+    if (device != null) {
+      _getDynamicDevice();
+    }
+  } */
 
-    // Inicializar los controladores de texto
-    _temperatureController = TextEditingController();
+  // Obtén la información estática del dispositivo
+  Future<void> _getDevice() async {
+    device = await CloudFirestoreService().getDevice(context);
+    if (device != null) {
+      _codigoeditingController.text = device!.codigo;
+      _correoeditingController.text = device!.correo;
+      _nombreeditingController.text = device!.nombre;
+    }
+  }
+
+  // Escuchar los cambios de temperatura en tiempo real
+  void _getDynamicDevice() {
+    _dbService.getDynamicDevice('esp32trycsrp133').listen((dynamicDeviceData) {
+      setState(() {
+        dynamicDevice = dynamicDeviceData;
+        if (dynamicDevice != null) {
+          temperature = dynamicDevice!.tempObjetivo;
+        }
+      });
+    });
+  }
+
+  // Actualiza la temperatura objetivo en Firebase
+  Future<void> _updateDevice() async {
+    CloudFirestoreService().updateDynamicDevice(
+      'esp32trycsrp133',
+      temperature, // Actualiza la temperatura objetivo
+      context
+    );
+    
+  }
+
+  // Función para mostrar el dialogo de edición
+  void showDialogEdit() {
+    /* _getDevice(); */
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Edita tu dispositivo'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _codigoeditingController,
+                decoration: const InputDecoration(labelText: 'Código de placa'),
+              ),
+              TextField(
+                controller: _nombreeditingController,
+                decoration: const InputDecoration(
+                  labelText: 'Ubicación del dispositivo',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                _updateDevice();
+              },
+              child: const Text('Editar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -42,50 +128,27 @@ class _ThermostatusScreenState extends State<ThermostatusScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: const [
-                    /* CircleAvatar( // Aquí tendría que ir el logo de la app
-                      radius: 50,
-                      backgroundImage: AssetImage('https://static.vecteezy.com/system/resources/previews/018/754/507/original/thermometer-icon-in-gradient-colors-temperature-signs-illustration-png.png'),
-                    ), */
                     Text(
-                      'Termostato',
+                      'Climatic',
                       style: TextStyle(color: Colors.white, fontSize: 24),
                     ),
                   ],
                 ),
               ),
-              /* ListTile(
-                title: const Text(
-                  'Termostato',
-                  style: TextStyle(color: Colors.white),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ), */
               ListTile(
                 title: const Text(
                   'Cuenta',
                   style: TextStyle(color: Colors.white),
                 ),
                 onTap: () {
-                  /* Navigator.push(
+                  // Navegar a la pantalla de cuenta
+                  Navigator.pushReplacement(
+                    // ignore: use_build_context_synchronously
                     context,
-                    MaterialPageRoute(builder: (context) => AccountScreen()),
-                  ); */
-                },
-              ),
-              ListTile(
-                title: const Text(
-                  'Cerrar Sesión',
-                  style: TextStyle(color: Colors.white),
-                ),
-                onTap: () {
-                  /* UserService().cleanLocalUser();
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => LoginScreen()),
-                    (Route<dynamic> route) => false,
-                  ); */
+                    MaterialPageRoute(
+                      builder: (context) => AccountScreen(), /////////////////////////////////// Aquí va este pedo de la cuenta
+                    ),
+                  );
                 },
               ),
             ],
@@ -94,22 +157,7 @@ class _ThermostatusScreenState extends State<ThermostatusScreen> {
       ),
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 9, 50, 110),
-        /* leading: IconButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-        ), */
-        title: const Text(
-          'Termostato',
-          style: TextStyle(color: Colors.white),
-        ),
-        /* actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.menu, color: Colors.white),
-          ),
-        ], */
+        title: const Text('Termostato', style: TextStyle(color: Colors.white)),
       ),
       body: Container(
         decoration: backgroundDecoration,
@@ -122,7 +170,11 @@ class _ThermostatusScreenState extends State<ThermostatusScreen> {
                 decoration: thermostatContainerDecoration,
                 child: Column(
                   children: [
-                    Text('22°C', style: thermostatTextStyle),
+                    // Mostrar la temperatura actual obtenida desde Firebase
+                    Text(
+                      '${dynamicDevice?.tempActual ?? 'Cargando...'}°C',
+                      style: thermostatTextStyle,
+                    ),
                     const SizedBox(height: 10),
                     Text(
                       'Objetivo: ${temperature.toStringAsFixed(1)}°C',
@@ -142,16 +194,19 @@ class _ThermostatusScreenState extends State<ThermostatusScreen> {
                 inactiveColor: sliderInactiveColor,
                 onChanged: (value) {
                   setState(() {
-                    temperature = value;
+                    temperature = value; // Actualiza el valor del slider
                   });
+                  _updateDevice(); // Actualiza Firebase con el nuevo objetivo
                 },
               ),
               const SizedBox(height: 20),
               FloatingActionButton(
                 onPressed: () {},
                 backgroundColor: Colors.green,
-                child:
-                    const Icon(Icons.power_settings_new, color: Colors.white),
+                child: const Icon(
+                  Icons.power_settings_new,
+                  color: Colors.white,
+                ),
               ),
             ],
           ),

@@ -1,6 +1,21 @@
 # termostato_2
 
-A new Flutter project.
+## +・・・・・・・・・・・・・・・・・・・・・・
+
+## Instalación rápida de las dependencias
+
+## -・・・・・・・・・・・・・・・・・・・・・・
+
+- flutter clean
+- flutter pub get
+- flutterfire configure (ejecutar en poweshell de vscode) `Esto me genero demasiados problemas`
+-- posteriormente, ejecutar la aplicación
+
+## +・・・・・・・・・・・・・・・・・・・・・-
+
+## Instalación lenta de flutter
+
+## -・・・・・・・・・・・・・・・・・・・・・-
 
 ## instalación de firebase para flutter
 
@@ -53,3 +68,7 @@ flutter pub add toastification
 ## Instalación de base de datos pequeña
 
 flutter pub add shared_preferences
+
+## Instalación de Firebase Realtime Database
+
+flutter pub add firebase_database

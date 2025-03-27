@@ -16,13 +16,46 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _alertEmailController = TextEditingController();
-  final TextEditingController _alertPasswordController = TextEditingController();
+  final TextEditingController _alertPasswordController =
+      TextEditingController();
   final ValidationService _validationService = ValidationService();
 
   @override
   void initState() {
     super.initState();
+    autoLogUser(); // Llama al método que maneja el trabajo asincrónico
   }
+
+  Future<void> autoLogUser() async {
+    print('Estamos ahora en Login Screen');
+    var localUser = await CloudFirestoreService().getLocalUser();
+
+    if (localUser == null) {
+      print('Usuario local nulo');
+      return;
+    }
+
+    print(localUser['emailUsuario']);
+
+    String? email = localUser['emailUsuario'];
+    String? password = localUser['contraseniaUsuario'];
+
+    if (email != null && password != null) {
+      // Si hay datos de usuario guardados, intentar iniciar sesión automáticamente
+      await CloudFirestoreService().logIn(context: context, email: email, password: password);
+      _emailController.text = email;
+      _passwordController.text = password;
+    } else {
+      // Si no se puede obtener email o contraseña, no se hace nada
+      await CloudFirestoreService().showSnapMessage(
+        context: context,
+        message: "No se pudo encontrar un usuario guardado.",
+        duration: Duration(seconds: 4),
+      );
+    }
+  }
+
+  
 
   Future<void> _logIn() async {
     setState(() {});
@@ -35,14 +68,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (_validationService.isValidEmail(_emailController.text) &&
         _validationService.isValidPassword(_passwordController.text)) {
-      await CloudFirestoreService().logIn(
-        context: context,
-        email: _emailController.text,
-        password: _passwordController.text,
-      );
-      cleanFields();
+      try {
+        await CloudFirestoreService().logIn(
+          context: context,
+          email: _emailController.text,
+          password: _passwordController.text,
+        );
+        // ignore: empty_catches
+      } catch (e) {}
     }
-    
   }
 
   void cleanFields() {
@@ -92,16 +126,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     labelText: "Contraseña",
                     labelStyle: inputLabelStyle,
                     suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscureText
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscureText = !_obscureText;
-                          });
-                        },
+                      icon: Icon(
+                        _obscureText ? Icons.visibility : Icons.visibility_off,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscureText = !_obscureText;
+                        });
+                      },
                     ),
                   ),
                 ),
@@ -125,7 +157,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => RegisterUserScreen()),
+                        builder: (context) => RegisterUserScreen(),
+                      ),
                     );
                   }, // Navegación a registro
                   child: const Text("Registrate"),
