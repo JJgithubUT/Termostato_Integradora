@@ -66,7 +66,29 @@ class CloudFirestoreService {
     return {'emailUsuario': email, 'contraseniaUsuario': contrasenia};
   }
 
-  Future<void> cleanLocalUser() async {
+  /* Future<void> saveLocalDeviceId(String idDevice) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('idDevice', idDevice);
+    // ignore: avoid_print
+    print('Código del dispositivo guardado: $idDevice');
+  }
+
+  Future<String?> getLocalDeviceId() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final idDevice = prefs.getString('idDevice');
+
+    if (idDevice == null) {
+      // ignore: avoid_print
+      print('No se encontró código de dispositivo.');
+      return null;
+    }
+
+    // ignore: avoid_print
+    print('Código del dispositivo recuperado: $idDevice');
+    return idDevice;
+  } */
+
+  Future<void> cleanLocalStorage() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     try {
       await prefs.clear();
@@ -81,8 +103,11 @@ class CloudFirestoreService {
   Future<UserModel?> getRemoteUser() async {
     var localUser = await getLocalUser();
     if (localUser == null) {
+      // ignore: avoid_print
       print('.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.--');
+      // ignore: avoid_print
       print('No hay usuario local guardado.');
+      // ignore: avoid_print
       print('.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.');
       return null;
     }
@@ -96,46 +121,35 @@ class CloudFirestoreService {
               .get();
 
       if (querySnapshot.docs.isEmpty) {
+        // ignore: avoid_print
         print('.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.');
+        // ignore: avoid_print
         print('Usuario remoto no encontrado.');
+        // ignore: avoid_print
         print('.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.');
         return null;
       }
 
       final userData = querySnapshot.docs.first.data();
 
-      final remoteUser = UserModel(
+      return UserModel(
         id: querySnapshot.docs.first.id,
         nombre: userData['nombre_usu']?.toString() ?? '',
         email: userData['email_usu']?.toString() ?? '',
         contrasenia: AESHelper.decryptPassword(
           userData['contrasenia_usu']!.toString(),
         ),
-      );
-
-      print('getRemoteUser() || id: ${remoteUser.id}');
-
-      return remoteUser;
+      );      
     } catch (e) {
+      // ignore: avoid_print
       print('.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.');
+      // ignore: avoid_print
       print('Error al obtener usuario remoto: $e');
+      // ignore: avoid_print
       print('.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.');
       return null;
     }
   }
-
-  /* Future<void> saveLocalDeviceCode({
-    required String code
-  }) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString('deviceCode', code);
-  }
-
-  Future<String?> getLocalDeviceCode() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    final code = prefs.getString('deviceCode');
-    return code;
-  } */
 
   Future<void> showSnapMessage({
     required BuildContext context,
@@ -163,75 +177,76 @@ class CloudFirestoreService {
   }
 
   Future<DeviceModel?> getDevice(BuildContext context) async {
-    final user = await getLocalUser();
-    final email = user?['emailUsuario'];
+  var localUser = await getLocalUser();
 
-    if (email == null) {
+  if (localUser == null) {
+    // ignore: avoid_print
+    print('No se encontró la id del dispositivo local.');
+    return null;
+  }
+
+  // ignore: avoid_print
+  print("Buscando usuario con el correo");
+
+  try {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('dispositivos')
+        .where('correo_usu', isEqualTo: localUser['emailUsuario'])
+        .limit(1)
+        .get();
+
+    if (querySnapshot.docs.isEmpty) {
       // ignore: avoid_print
-      print('No se encontró el email del usuario local.');
+      print("No se encontró ningún dispositivo.");
       return null;
     }
 
-    print("Dispositivo encontrado");
+    final deviceData = querySnapshot.docs.first.data();
 
-    try {
-      final querySnapshot =
-          await _cloudFireStore
-              .collection('dispositivos')
-              .where('correo_usu', isEqualTo: email)
-              .limit(1)
-              .get();
+    final gDvice = DeviceModel(
+      id: querySnapshot.docs.first.id,
+      codigo: deviceData['codigo_dis'] as String? ?? '',
+      correo: deviceData['correo_usu'] as String? ?? '',
+      estado: (deviceData['estado_dis'] as bool?) ?? false,
+      nombre: deviceData['nombre_dis'] as String? ?? 'Desconocido',
+    );
 
-      if (querySnapshot.docs.isEmpty) {
-        return null;
-      }
+    // ignore: avoid_print
+    print('getDevice() || ${gDvice.id} / ${gDvice.codigo} / ${gDvice.correo} / ${gDvice.estado} / ${gDvice.nombre} /');
 
-      final deviceData = querySnapshot.docs.first.data();
+    return DeviceModel(
+      id: querySnapshot.docs.first.id,
+      codigo: deviceData['codigo_dis'] as String? ?? '',
+      correo: deviceData['correo_usu'] as String? ?? '',
+      estado: (deviceData['estado_dis'] as bool?) ?? false,
+      nombre: deviceData['nombre_dis'] as String? ?? 'Desconocido',
+    );
+  } catch (e) {
+    // ignore: avoid_print
+    print('Error al obtener el dispositivo: $e');
 
-      return DeviceModel(
-        id: deviceData['id'] as String,
-        codigo: deviceData['codigo_dis'] as String,
-        correo: deviceData['correo_usu'] as String,
-        estado: deviceData['estado_dis'] as bool,
-        nombre: deviceData['nombre_dis'] as String,
-      );
-    } catch (e) {
-      // ignore: avoid_print
-      print('Error: $e');
-      showSnapMessage(
-        // ignore: use_build_context_synchronously
-        context: context,
-        message: 'Error al obtener dispositivo: $e',
-        duration: Duration(seconds: 5)
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al obtener dispositivo: $e'),
+          duration: Duration(seconds: 5),
+        ),
       );
     }
 
-    return null; // Retornar null si no hay dispositivos o ocurre algún error.
+    return null;
   }
+}
 
   Future<void> updateDevice({
-    required String codigo,
-    required String correo,
-    required String nombre,
+    required DeviceModel device,
     required BuildContext context,
   }) async {
     try {
-      await _cloudFireStore
-          .collection('dispositivos')
-          .where('correo_usu', isEqualTo: correo)
-          .get()
-          .then((querySnapshot) {
-            if (querySnapshot.docs.isNotEmpty) {
-              querySnapshot.docs.first.reference.update({
-                'codigo_dis': codigo,
-                'nombre_dis': nombre,
-              });
-            } else {
-              throw Exception(
-                "No se encontró un dispositivo con el correo proporcionado.",
-              );
-            }
-          });
+      await _cloudFireStore.collection('dispositivos').doc(device.id).update({
+        'codigo_dis': device.codigo,
+        'nombre_dis': device.nombre,
+      });
     } catch (e) {
       // ignore: avoid_print
       print('CloudService || updateDevice(): Error: ${e.toString()}');
@@ -266,10 +281,12 @@ class CloudFirestoreService {
   Future<void> updateDynamicDevice(
     String deviceCode,
     double tempObjetivo,
-    BuildContext context
+    BuildContext context,
   ) async {
     try {
-      await _dbRef.child(deviceCode).update({'temp_objetivo_dis': tempObjetivo});
+      await _dbRef.child(deviceCode).update({
+        'temp_objetivo_dis': tempObjetivo,
+      });
     } catch (e) {
       // ignore: avoid_print
       print('Error al actualizar el dispositivo dinámico: $e');
@@ -277,10 +294,9 @@ class CloudFirestoreService {
         // ignore: use_build_context_synchronously
         context: context,
         message: 'Error al actualizar el dispositivo dinámico: $e',
-        duration: Duration(seconds: 5)
+        duration: Duration(seconds: 5),
       );
     }
-    
   }
 
   ///// Usuarios /////
@@ -430,6 +446,11 @@ class CloudFirestoreService {
             color: Colors.green,
           );
 
+          // ignore: avoid_print
+          print(
+            '/////////id del usuario en el logIn para guardar: ${loggedUser.id}',
+          );
+
           // Guardar localmente el usuario
           saveLocalUser(email: email, password: password);
 
@@ -470,7 +491,7 @@ class CloudFirestoreService {
   Future<void> logOut(BuildContext context) async {
     try {
       await FirebaseAuth.instance.signOut(); // Cerrar sesión en Firebase Auth
-      CloudFirestoreService().cleanLocalUser(); // Limpiar usuario local
+      CloudFirestoreService().cleanLocalStorage(); // Limpiar usuario local
 
       Navigator.pushAndRemoveUntil(
         // ignore: use_build_context_synchronously
@@ -511,6 +532,7 @@ class CloudFirestoreService {
         // Actualizar la contraseña en Firebase Authentication si es necesario
         await firebaseUser.updatePassword(user.contrasenia);
 
+        // ignore: avoid_print
         print('updateUser() || id: ${user.id}');
 
         // Actualizar datos del usuario en Firestore

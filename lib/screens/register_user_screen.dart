@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:termostato_2/widgets/themes.dart';
+/* import 'package:termostato_2/widgets/themes.dart'; */
 import 'package:termostato_2/services/cloud_firestore_service.dart';
 import 'package:termostato_2/services/validation_service.dart';
 
@@ -65,90 +65,170 @@ class _RegisterUserScreenState extends State<RegisterUserScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: backgroundDecoration,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF133C55), // Azul oscuro
+              Color(0xFF386FA4), // Azul intermedio
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
         child: Center(
           child: Padding(
             padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text("Registrate", style: loginTitleStyle),
-                const SizedBox(height: 20),
-                TextField(
-                  maxLength: 50,
-                  keyboardType: TextInputType.emailAddress,
-                  controller: _emailController,
-                  decoration: InputDecoration(
-                    labelText: "Email",
-                    labelStyle: inputLabelStyle,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Color(0xFF59A5D8), // Fondo azul claro
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [
+                  BoxShadow(
+                    // ignore: deprecated_member_use
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 5,
+                    offset: Offset(2, 2),
                   ),
-                ),
-                Text(
-                  _alertEmailController.text,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.red,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                TextField(
-                  maxLength: 50,
-                  keyboardType: TextInputType.text,
-                  controller: _nameController,
-                  decoration: InputDecoration(
-                    labelText: "Nombre",
-                    labelStyle: inputLabelStyle,
-                  ),
-                ),
-                Text(
-                  _alertNameController.text,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.red,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                TextField(
-                  obscureText: _obscureText,
-                  maxLength: 50,
-                  keyboardType: TextInputType.visiblePassword,
-                  controller: _passwordController,
-                  decoration: InputDecoration(
-                    labelText: "Contraseña",
-                    labelStyle: inputLabelStyle,
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscureText ? Icons.visibility : Icons.visibility_off,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscureText = !_obscureText;
-                        });
-                      },
+                ],
+              ),
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "Regístrate",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF91E5F6), // Azul brillante
                     ),
                   ),
-                ),
-                Text(
-                  _alertPasswordController.text,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.red,
-                    fontWeight: FontWeight.bold,
+                  const SizedBox(height: 20),
+                  TextField(
+                    maxLength: 50,
+                    keyboardType: TextInputType.emailAddress,
+                    controller: _emailController,
+                    decoration: InputDecoration(
+                      labelText: "Email",
+                      labelStyle: TextStyle(
+                        color: Color(0xFF84D2F6),
+                      ), // Azul pastel
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
                   ),
-                ),
-                ElevatedButton(
-                  onPressed: _register,
-                  child: const Text("Registrar"),
-                ),
-                const SizedBox(height: 10),
-                ElevatedButton(
-                  onPressed: () {
-                    cleanFields();
-                    Navigator.of(context).pop();
-                  }, // Navegación al login
-                  child: const Text("Cancelar"),
-                ),
-              ],
+                  Text(
+                    _alertEmailController.text,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    maxLength: 50,
+                    keyboardType: TextInputType.text,
+                    controller: _nameController,
+                    decoration: InputDecoration(
+                      labelText: "Nombre",
+                      labelStyle: TextStyle(color: Color(0xFF84D2F6)),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    _alertNameController.text,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    obscureText: _obscureText,
+                    maxLength: 50,
+                    keyboardType: TextInputType.visiblePassword,
+                    controller: _passwordController,
+                    decoration: InputDecoration(
+                      labelText: "Contraseña",
+                      labelStyle: TextStyle(color: Color(0xFF84D2F6)),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureText
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                          color: Color(0xFF386FA4),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscureText = !_obscureText;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  Text(
+                    _alertPasswordController.text,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF386FA4),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 20,
+                      ),
+                    ),
+                    onPressed: _register,
+                    child: const Text(
+                      "Registrar",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF133C55),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 20,
+                      ),
+                    ),
+                    onPressed: () {
+                      cleanFields();
+                      Navigator.of(context).pop();
+                    }, // Navegación al login
+                    child: const Text(
+                      "Cancelar",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

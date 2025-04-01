@@ -37,4 +37,13 @@ class ValidationService {
     return hasMaxLength && hasMinLength;
   }
 
+  bool idValidCode(String code) {
+    code.trim();
+    bool hasMinLength = code.length >= 10;
+    bool hasMaxLength = code.length <= 30;
+
+    return hasMinLength &&
+        hasMaxLength;
+  }
+
 }

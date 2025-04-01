@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:termostato_2/models/user_model.dart';
 import 'package:termostato_2/screens/thermostatus_screen.dart';
 import 'package:termostato_2/services/validation_service.dart';
-import 'package:termostato_2/widgets/themes.dart';
+//import 'package:termostato_2/widgets/themes.dart';
 import 'package:termostato_2/services/cloud_firestore_service.dart';
 
 class AccountScreen extends StatefulWidget {
@@ -51,8 +51,7 @@ class _AccountScreenState extends State<AccountScreen> {
           _passwordController.text != '' &&
           ValidationService().isValidName(_nameController.text) &&
           ValidationService().isValidEmail(_emailController.text) &&
-          ValidationService().isValidPassword(_passwordController.text)
-          ) {
+          ValidationService().isValidPassword(_passwordController.text)) {
         // Si los datos a enviar no son nulos, continuar
         final userToUpdate = UserModel(
           id: _user!.id,
@@ -92,45 +91,46 @@ class _AccountScreenState extends State<AccountScreen> {
     return Scaffold(
       drawer: Drawer(
         child: Container(
-          color: const Color.fromARGB(255, 75, 59, 113),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF133C55), // Azul oscuro
+                Color(0xFF386FA4), // Azul intermedio
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
           child: ListView(
             children: [
               DrawerHeader(
                 decoration: BoxDecoration(
-                  color: const Color.fromARGB(255, 75, 59, 113),
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF133C55), Color(0xFF386FA4)],
+                  ),
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    /* CircleAvatar( // Aquí tendría que ir el logo de la app
-                      radius: 50,
-                      backgroundImage: AssetImage('https://static.vecteezy.com/system/resources/previews/018/754/507/original/thermometer-icon-in-gradient-colors-temperature-signs-illustration-png.png'),
-                    ), */
-                    Text(
-                      'Termostato',
-                      style: TextStyle(color: Colors.white, fontSize: 24),
+                child: Center(
+                  child: Text(
+                    'Climatic',
+                    style: TextStyle(
+                      color: Color(0xFF91E5F6),
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
                     ),
-                  ],
+                  ),
                 ),
               ),
-              /* ListTile(
-                title: const Text(
-                  'Termostato',
-                  style: TextStyle(color: Colors.white),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ), */
               ListTile(
-                title: const Text(
+                leading: const Icon(
+                  Icons.person,
+                  color: Colors.white,
+                ),
+                title: Text(
                   'Termostato',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: Color(0xFF84D2F6)),
                 ),
                 onTap: () {
-                  // Navegar a la siguiente pantalla
                   Navigator.pushReplacement(
-                    // ignore: use_build_context_synchronously
                     context,
                     MaterialPageRoute(
                       builder: (context) => ThermostatusScreen(),
@@ -139,102 +139,171 @@ class _AccountScreenState extends State<AccountScreen> {
                 },
               ),
               ListTile(
-                title: const Text(
-                  'Cerrar Sesión',
-                  style: TextStyle(color: Colors.white),
+                leading: const Icon(
+                  Icons.logout,
+                  color: Color.fromARGB(255, 255, 104, 99),
                 ),
-                onTap: () {
-                  _logOut();
-                },
+                title: Text(
+                  'Cerrar Sesión',
+                  style: TextStyle(color: Color.fromARGB(255, 255, 104, 99)),
+                ),
+                onTap: _logOut,
               ),
             ],
           ),
         ),
       ),
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 9, 50, 110),
-        /* leading: IconButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-        ), */
-        title: const Text('Mi cuenta', style: TextStyle(color: Colors.white)),
+        backgroundColor: Color(0xFF133C55),
+        title: Text('Mi cuenta', style: TextStyle(color: Color(0xFF91E5F6))),
+        iconTheme: IconThemeData(
+          color: Color(0xFF91E5F6), // Cambia el color del ícono aquí.
+        ),
       ),
       body: Container(
-        decoration: backgroundDecoration,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF133C55), Color(0xFF386FA4)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
         child: Center(
           child: Padding(
             padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(_nombreUsuarioTitulo, style: loginTitleStyle),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: _nameController,
-                  decoration: InputDecoration(
-                    labelText: 'Nombre',
-                    labelStyle: inputLabelStyle,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Color(0xFF59A5D8),
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [
+                  BoxShadow(
+                    // ignore: deprecated_member_use
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 5,
+                    offset: Offset(2, 2),
                   ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _emailController,
-                  decoration: InputDecoration(
-                    fillColor: const Color.fromARGB(255, 158, 158, 158),
-                    labelText: 'Email',
-                    labelStyle: inputLabelStyle,
-                  ),
-                  enabled: false,
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _passwordController,
-                  decoration: InputDecoration(
-                    labelText: 'Contraseña',
-                    labelStyle: inputLabelStyle,
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscureText ? Icons.visibility : Icons.visibility_off,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscureText = !_obscureText;
-                        });
-                      },
+                ],
+              ),
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _nombreUsuarioTitulo.isNotEmpty
+                        ? "¡Hola, $_nombreUsuarioTitulo!"
+                        : "Bienvenido a Climatic",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF91E5F6),
                     ),
                   ),
-                  obscureText: _obscureText,
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 9, 50, 110),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: _nameController,
+                    decoration: InputDecoration(
+                      labelText: 'Nombre',
+                      labelStyle: TextStyle(color: Color(0xFF84D2F6)),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
                   ),
-                  onPressed: () {
-                    _updateUser();
-                  },
-                  child: const Text('Guardar'),
-                ),
-                const SizedBox(height: 10),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 108, 36, 36),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _emailController,
+                    decoration: InputDecoration(
+                      labelText: 'Email',
+                      labelStyle: TextStyle(color: Color(0xFF84D2F6)),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    enabled: false,
                   ),
-                  onPressed: () {
-                    /* Navigator.pop(context);
-                    Navigator.pop(context); */
-                  },
-                  child: const Text('Cancelar'),
-                ),
-                const SizedBox(height: 10),
-                if (_errorMessage != null)
-                  Text(
-                    _errorMessage!,
-                    style: const TextStyle(color: Colors.red, fontSize: 14),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _passwordController,
+                    decoration: InputDecoration(
+                      labelText: 'Contraseña',
+                      labelStyle: TextStyle(color: Color(0xFF84D2F6)),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureText
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                          color: Color(0xFF386FA4),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscureText = !_obscureText;
+                          });
+                        },
+                      ),
+                    ),
+                    obscureText: _obscureText,
                   ),
-              ],
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF386FA4),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 20,
+                      ),
+                    ),
+                    onPressed: _updateUser,
+                    child: Text(
+                      "Guardar",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF133C55),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 20,
+                      ),
+                    ),
+                    onPressed: () {
+                      // Mantenemos la lógica original
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ThermostatusScreen(),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      "Cancelar",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  if (_errorMessage != null) const SizedBox(height: 10),
+                  if (_errorMessage != null)
+                    Text(
+                      _errorMessage!,
+                      style: TextStyle(color: Colors.red, fontSize: 14),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
